@@ -1,7 +1,7 @@
 {
   "domain": "sp_tasks",
   "name": "SP任务",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "config_flow": true,
   "documentation": "https://github.com/studentLcc/sp_tasks",
   "issue_tracker": "https://github.com/studentLcc/sp_tasks/issues",

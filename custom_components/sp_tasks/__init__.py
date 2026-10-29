@@ -95,7 +95,7 @@ def _register_get_tasks(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_GET_TASKS,
         _async_get_tasks,
-        schema=vol.Schema({}),
+        schema=vol.Schema({vol.Optional("entity_id"): cv.entity_ids}, extra=vol.ALLOW_EXTRA),
         supports_response=SupportsResponse.OPTIONAL,
     )
 
