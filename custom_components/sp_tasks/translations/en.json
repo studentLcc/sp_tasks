@@ -1,0 +1,38 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Super Productivity Tasks",
+        "description": "Receive today's tasks from the bridge. Notification targets can be changed later in the integration options.",
+        "data": {
+          "wecom_webhook_url": "WeCom robot webhook",
+          "serverchan_sendkey": "ServerChan SendKey",
+          "serverchan_uid": "ServerChan3 UID (optional)"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Webhook must start with https://",
+      "invalid_sendkey": "Unrecognized ServerChan3 SendKey; provide a UID or use the sctp<uid>t... format"
+    },
+    "abort": {
+      "single_instance_allowed": "This integration is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Notification settings",
+        "data": {
+          "wecom_webhook_url": "WeCom robot webhook",
+          "serverchan_sendkey": "ServerChan SendKey",
+          "serverchan_uid": "ServerChan3 UID (optional)"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Webhook must start with https://",
+      "invalid_sendkey": "Unrecognized ServerChan3 SendKey; provide a UID or use the sctp<uid>t... format"
+    }
+  }
+}

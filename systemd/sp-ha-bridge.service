@@ -1,0 +1,16 @@
+[Unit]
+Description=Super Productivity to Home Assistant bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/sp-ha-bridge
+EnvironmentFile=/opt/sp-ha-bridge/.env
+ExecStart=/usr/bin/python3 -m bridge.app
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+
