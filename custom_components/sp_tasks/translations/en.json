@@ -34,5 +34,17 @@
       "invalid_url": "Webhook must start with https://",
       "invalid_sendkey": "Unrecognized ServerChan3 SendKey; provide a UID or use the sctp<uid>t... format"
     }
+  },
+  "services": {
+    "send_daily_summary": {
+      "name": "Send today summary",
+      "description": "Optional. Today's tasks are on sensor.sp_tasks_today. Use your existing rest_command instead of this action.",
+      "fields": {
+        "date": {
+          "name": "Date",
+          "description": "YYYY-MM-DD. Empty means today."
+        }
+      }
+    }
   }
 }

@@ -10,6 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DATE, ATTR_LAST_SYNC, ATTR_TASKS, DOMAIN
+from .util import format_markdown
 
 
 async def async_setup_entry(
@@ -28,6 +29,7 @@ class SpTasksTodaySensor(SensorEntity):
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
+        self.entity_id = "sensor.sp_tasks_today"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "tasks")},
             name="Super Productivity 任务",
@@ -45,8 +47,11 @@ class SpTasksTodaySensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self._today_data
+        task_date = data.get(ATTR_DATE, dt_util.now().date().isoformat())
+        tasks = data.get(ATTR_TASKS, [])
         return {
-            ATTR_DATE: data.get(ATTR_DATE, dt_util.now().date().isoformat()),
-            ATTR_TASKS: data.get(ATTR_TASKS, []),
+            ATTR_DATE: task_date,
+            ATTR_TASKS: tasks,
+            "message": format_markdown({"tasks": tasks}, task_date),
             ATTR_LAST_SYNC: data.get(ATTR_LAST_SYNC),
         }

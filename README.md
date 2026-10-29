@@ -26,7 +26,8 @@ Super Productivity 桌面端
 - `POST /api/sp_tasks/tasks`：桥接服务写入任务。请求必须带 Home Assistant 长期访问令牌。
 - `GET /api/sp_tasks/tasks?date=YYYY-MM-DD`：读取指定日期的任务。
 - “今日任务”传感器：状态是任务数量，属性包含 `date`、`tasks`、`last_sync`。
-- `sp_tasks.send_daily_summary`：整理当天任务并出站推送。
+- 传感器 `sensor.sp_tasks_today`：状态是今天的任务数量。属性 `tasks` 是任务列表，属性 `message` 是可以直接交给已有 `rest_command` 的正文。
+- `sp_tasks.send_daily_summary`：可选动作。已经有 Server酱 `rest_command` 时不用它。
 
 任务保存在 Home Assistant 的存储中，重启后仍然存在。同一天重复同步会覆盖当天记录。
 
@@ -36,22 +37,19 @@ Super Productivity 桌面端
 
 Server酱³ 的 SendKey 以 `sctp` 开头。标准的 `sctp<uid>t...` 会自动识别 UID；无法识别时，在集成配置里填写 UID。
 
-## 桥接服务
+## 桥接服务镜像
 
-HACS 只安装 HA 接收端。在 Super Productivity 所在设备上：
-
-1. 打开 `Settings → Misc → Enable local REST API`，复制 Access Token。
-2. 在 HA 的用户资料页创建长期访问令牌。
-3. 按 [.env.example](.env.example) 创建 `.env`。
-4. 在本仓库目录运行 `python3 -m bridge.app`。
-
-默认监听 `127.0.0.1:8787`。进程启动后立即同步，之后每 15 分钟同步一次。手动同步：
+HACS 只安装 HA 接收端。桥接镜像要在运行 Super Productivity 的同一台 Linux 电脑上用 Podman 构建，并使用 host 网络，这样容器才能访问 `127.0.0.1:3876`。
 
 ```bash
+cp .env.example .env
+podman build -t sp-ha-bridge:local .
+podman run -d --replace --name sp-ha-bridge --network host --env-file .env sp-ha-bridge:local
+podman logs -f sp-ha-bridge
 curl -X POST http://127.0.0.1:8787/sync
 ```
 
-也可以使用 [Dockerfile](Dockerfile) 或 [systemd/sp-ha-bridge.service](systemd/sp-ha-bridge.service)。桥接服务只绑定本机或受控网络，不要暴露到公网。
+已安装 `podman compose` 时，也可以在填写 `.env` 后执行 `podman compose up -d --build`。`.env` 里填写 SP Access Token、HA 地址和 HA 长期访问令牌。容器启动后立即同步，之后每 15 分钟同步一次。
 
 ## 验证
 

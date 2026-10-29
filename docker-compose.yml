@@ -1,0 +1,10 @@
+# 必须和 Super Productivity 桌面端运行在同一台 Linux 电脑上。
+# host 网络让容器里的 127.0.0.1:3876 就是这台电脑上的 SP 接口。
+services:
+  sp-ha-bridge:
+    build: .
+    image: sp-ha-bridge:local
+    container_name: sp-ha-bridge
+    restart: unless-stopped
+    env_file: .env
+    network_mode: host
