@@ -8,6 +8,7 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
@@ -16,6 +17,7 @@ from .const import ATTR_DATE, ATTR_LAST_SYNC, ATTR_TASKS, DOMAIN, STORAGE_KEY, S
 
 PLATFORMS = [Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+SERVICE_GET_TASKS = "get_tasks"
 
 
 class TasksView(HomeAssistantView):
@@ -82,13 +84,20 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             "entities": [],
         }
         hass.http.register_view(TasksView)
-        hass.services.async_register(
-            DOMAIN,
-            "get_tasks",
-            _async_get_tasks,
-            supports_response=SupportsResponse.ONLY,
-        )
+        _register_get_tasks(hass)
     return True
+
+
+def _register_get_tasks(hass: HomeAssistant) -> None:
+    if hass.services.has_service(DOMAIN, SERVICE_GET_TASKS):
+        return
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_TASKS,
+        _async_get_tasks,
+        schema=vol.Schema({}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
 
 
 async def _async_get_tasks(call: ServiceCall) -> dict[str, Any]:
@@ -105,6 +114,7 @@ async def _async_get_tasks(call: ServiceCall) -> dict[str, Any]:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    _register_get_tasks(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
