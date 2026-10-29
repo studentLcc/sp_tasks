@@ -109,7 +109,7 @@ action:
       tags: "任务"
 ```
 
-通知标题放日期。正文不再重复这个标题。示例文件是 [examples/daily_summary.yaml](examples/daily_summary.yaml)。
+通知标题放日期。正文不要直接使用预先拼好的 desp，而是像天气通知一样，用 groups 里的 overdue、today、week 自己写模板。分类名称、是否显示备注、空分类时的文案都可以改。完整示例在 [examples/daily_summary.yaml](examples/daily_summary.yaml)。
 
 ## 4. 不要提交的内容
 

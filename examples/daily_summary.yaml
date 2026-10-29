@@ -7,7 +7,41 @@ trigger:
 action:
   - action: rest_command.your_serverchan_command
     data:
-      title: "任务"
-      desp: "{{ state_attr('sensor.sp_tasks_today', 'desp') }}"
+      title: "任务（{{ state_attr('sensor.sp_tasks_today', 'date') }}）"
       tags: "任务"
+      desp: >
+        {% set g = state_attr('sensor.sp_tasks_today', 'groups') %}
+
+        **已过期（{{ g.overdue | count }}）**
+
+        {% for item in g.overdue %}
+        - {{ item.title }}
+        {% if item.schedule_time %}  时间：{{ item.schedule_time }}
+        {% endif %}{% if item.notes and item.notes != '无' %}  内容：{{ item.notes }}
+        {% endif %}
+        {% else %}
+        无
+        {% endfor %}
+
+        **今天（{{ g.today | count }}）**
+
+        {% for item in g.today %}
+        - {{ item.title }}
+        {% if item.schedule_time %}  时间：{{ item.schedule_time }}
+        {% endif %}{% if item.notes and item.notes != '无' %}  内容：{{ item.notes }}
+        {% endif %}
+        {% else %}
+        无
+        {% endfor %}
+
+        **一周内（{{ g.week | count }}）**
+
+        {% for item in g.week %}
+        - {{ item.title }}
+        {% if item.schedule_time %}  时间：{{ item.schedule_time }}
+        {% endif %}{% if item.notes and item.notes != '无' %}  内容：{{ item.notes }}
+        {% endif %}
+        {% else %}
+        无
+        {% endfor %}
 mode: single
