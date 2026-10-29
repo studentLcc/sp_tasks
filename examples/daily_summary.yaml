@@ -5,39 +5,71 @@ trigger:
   - platform: time
     at: "07:00:00"
 action:
-  - variables:
-      weather_text: >
-        这里保留你原来的天气模板，wx 的来源不用改。
-      task_text: >
-        {% set g = state_attr('sensor.sp_tasks_today', 'groups') %}
-        **今日任务**
-
-        已过期（{{ g.overdue | count }}）
-        {% for item in g.overdue %}
-        - {{ item.title }}
-        {% else %}
-        无
-        {% endfor %}
-
-        今天（{{ g.today | count }}）
-        {% for item in g.today %}
-        - {{ item.title }}
-        {% else %}
-        无
-        {% endfor %}
-
-        一周内（{{ g.week | count }}）
-        {% for item in g.week %}
-        - {{ item.title }}
-        {% else %}
-        无
-        {% endfor %}
+  - action: qweather_pro.get_weather
+    target:
+      entity_id: weather.zhu_jin_he_feng_tian_qi_zhu_jin_weather
+    data:
+      keys:
+        - now
+        - weather_abstract
+        - city
+        - daily
+        - aqi
+        - indices
+        - minutely_summary
+        - update_time
+    response_variable: wx
+  - action: sp_tasks.get_tasks
+    response_variable: task
   - action: rest_command.your_serverchan_command
     data:
-      title: "早安（{{ state_attr('sensor.sp_tasks_today', 'date') }}）"
+      title: "早安（{{ task.date }}）"
       tags: "天气|任务"
       desp: >
-        {{ weather_text }}
+        **实时状况**
 
-        {{ task_text }}
+        {{ wx.now.text_cn }}，当前 {{ wx.now.temp | round(1) }}℃（体感 {{ wx.now.feelsLike | round(1) }}℃）
+
+        **今日预报**
+
+        - 白天：{{ wx.daily[0].daytime.text }}，最高温 {{ wx.daily[0].temp_max | round(0) }}℃
+        - 夜间：{{ wx.daily[0].nighttime.text }}，最低温 {{ wx.daily[0].temp_min | round(0) }}℃
+        - 风向：{{ wx.now.windDir }} {{ wx.now.windScale }}级
+
+        **空气质量**
+
+        {{ wx.aqi.category }}（AQI：{{ wx.aqi.aqi }}），首要污染物：{{ wx.aqi.primary | default('无') }}
+
+        **穿衣指南**
+
+        {{ wx.indices[2].brf }}：{{ wx.indices[2].txt }}
+
+        **降水提醒**
+
+        {{ wx.minutely_summary }}
+
+        > 更新时间：{{ wx.update_time }}
+
+        **今日任务**
+
+        已过期（{{ task.overdue | count }}）
+        {% for item in task.overdue %}
+        - {{ item.title }}
+        {% else %}
+        无
+        {% endfor %}
+
+        今天（{{ task.today | count }}）
+        {% for item in task.today %}
+        - {{ item.title }}
+        {% else %}
+        无
+        {% endfor %}
+
+        一周内（{{ task.week | count }}）
+        {% for item in task.week %}
+        - {{ item.title }}
+        {% else %}
+        无
+        {% endfor %}
 mode: single

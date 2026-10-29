@@ -7,7 +7,7 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
@@ -82,7 +82,26 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             "entities": [],
         }
         hass.http.register_view(TasksView)
+        hass.services.async_register(
+            DOMAIN,
+            "get_tasks",
+            _async_get_tasks,
+            supports_response=SupportsResponse.ONLY,
+        )
     return True
+
+
+async def _async_get_tasks(call: ServiceCall) -> dict[str, Any]:
+    """Return saved tasks for an automation response_variable."""
+    stored = _snapshot(call.hass)
+    groups = stored.get("groups") if isinstance(stored.get("groups"), dict) else {}
+    return {
+        "date": stored.get(ATTR_DATE),
+        "last_sync": stored.get(ATTR_LAST_SYNC),
+        "overdue": list(groups.get("overdue") or []),
+        "today": list(groups.get("today") or []),
+        "week": list(groups.get("week") or []),
+    }
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

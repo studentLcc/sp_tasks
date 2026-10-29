@@ -1,0 +1,3 @@
+get_tasks:
+  name: 获取任务
+  description: 返回已过期、今天和一周内的任务。后续动作通过响应变量使用，例如 task.today。

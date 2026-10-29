@@ -9,5 +9,11 @@
     "abort": {
       "single_instance_allowed": "已经添加过这个集成"
     }
+  },
+  "services": {
+    "get_tasks": {
+      "name": "获取任务",
+      "description": "返回已过期、今天和一周内的任务。后续动作通过响应变量使用。"
+    }
   }
 }

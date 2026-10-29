@@ -9,5 +9,11 @@
     "abort": {
       "single_instance_allowed": "This integration is already configured"
     }
+  },
+  "services": {
+    "get_tasks": {
+      "name": "Get tasks",
+      "description": "Return overdue, today, and next-7-day tasks for a response variable."
+    }
   }
 }
