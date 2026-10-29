@@ -79,7 +79,7 @@ def classify_tasks(raw_tasks: list[dict[str, Any]], today: date, tz: ZoneInfo) -
 
 
 def render_message(groups: dict[str, list[dict[str, Any]]], today: date) -> str:
-    lines = [f"任务（{today.isoformat()}）", ""]
+    lines: list[str] = []
     for key in CATEGORIES:
         items = groups.get(key) or []
         lines.append(f"{CATEGORY_TITLES[key]}（{len(items)}）")
@@ -89,11 +89,11 @@ def render_message(groups: dict[str, list[dict[str, Any]]], today: date) -> str:
             lines.append("")
             continue
         for item in items:
-            when = item["schedule_day"]
-            if item.get("schedule_time"):
-                when = f"{when} {item['schedule_time']}"
             lines.append(f"- {item['title']}")
-            lines.append(f"  时间：{when}")
-            lines.append(f"  内容：{item.get('notes') or '无'}")
+            if item.get("schedule_time"):
+                lines.append(f"  时间：{item['schedule_time']}")
+            notes = item.get("notes") or ""
+            if notes and notes != "无":
+                lines.append(f"  内容：{notes}")
             lines.append("")
     return "\n".join(lines).strip()
