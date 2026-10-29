@@ -1,47 +1,43 @@
 - id: sp_tasks_daily_summary
 alias: Super Productivity 每日任务摘要
-description: 每天 07:00 把已分类任务交给现有 Server酱 rest_command
+description: 每天 07:00 先组装天气和任务，再调用一次 Server酱 rest_command
 trigger:
   - platform: time
     at: "07:00:00"
 action:
-  - action: rest_command.your_serverchan_command
-    data:
-      title: "任务（{{ state_attr('sensor.sp_tasks_today', 'date') }}）"
-      tags: "任务"
-      desp: >
+  - variables:
+      weather_text: >
+        这里保留你原来的天气模板，wx 的来源不用改。
+      task_text: >
         {% set g = state_attr('sensor.sp_tasks_today', 'groups') %}
+        **今日任务**
 
-        **已过期（{{ g.overdue | count }}）**
-
+        已过期（{{ g.overdue | count }}）
         {% for item in g.overdue %}
         - {{ item.title }}
-        {% if item.schedule_time %}  时间：{{ item.schedule_time }}
-        {% endif %}{% if item.notes and item.notes != '无' %}  内容：{{ item.notes }}
-        {% endif %}
         {% else %}
         无
         {% endfor %}
 
-        **今天（{{ g.today | count }}）**
-
+        今天（{{ g.today | count }}）
         {% for item in g.today %}
         - {{ item.title }}
-        {% if item.schedule_time %}  时间：{{ item.schedule_time }}
-        {% endif %}{% if item.notes and item.notes != '无' %}  内容：{{ item.notes }}
-        {% endif %}
         {% else %}
         无
         {% endfor %}
 
-        **一周内（{{ g.week | count }}）**
-
+        一周内（{{ g.week | count }}）
         {% for item in g.week %}
         - {{ item.title }}
-        {% if item.schedule_time %}  时间：{{ item.schedule_time }}
-        {% endif %}{% if item.notes and item.notes != '无' %}  内容：{{ item.notes }}
-        {% endif %}
         {% else %}
         无
         {% endfor %}
+  - action: rest_command.your_serverchan_command
+    data:
+      title: "早安（{{ state_attr('sensor.sp_tasks_today', 'date') }}）"
+      tags: "天气|任务"
+      desp: >
+        {{ weather_text }}
+
+        {{ task_text }}
 mode: single
