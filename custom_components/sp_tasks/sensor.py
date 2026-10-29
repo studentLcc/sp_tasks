@@ -62,6 +62,7 @@ class SpTasksTodaySensor(SensorEntity):
             ATTR_TASKS: tasks,
             "groups": groups,
             "message": message,
+            "desp": message,
             "overdue_count": len(groups.get("overdue") or []),
             "today_count": len(groups.get("today") or []),
             "week_count": len(groups.get("week") or []),

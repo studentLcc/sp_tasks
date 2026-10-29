@@ -8,6 +8,6 @@ action:
   - action: rest_command.your_serverchan_command
     data:
       title: "任务"
-      desp: "{{ state_attr('sensor.sp_tasks_today', 'message') }}"
+      desp: "{{ state_attr('sensor.sp_tasks_today', 'desp') }}"
       tags: "任务"
 mode: single
