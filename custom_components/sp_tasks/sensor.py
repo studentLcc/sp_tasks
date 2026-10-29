@@ -7,10 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
-
 from .const import ATTR_DATE, ATTR_LAST_SYNC, ATTR_TASKS, DOMAIN
-from .util import format_markdown
 
 
 async def async_setup_entry(
@@ -37,21 +34,36 @@ class SpTasksTodaySensor(SensorEntity):
         )
 
     @property
-    def _today_data(self) -> dict[str, Any]:
-        return self.hass.data[DOMAIN]["tasks_by_date"].get(dt_util.now().date().isoformat(), {})
+    def _snapshot(self) -> dict[str, Any]:
+        data = self.hass.data[DOMAIN]
+        if data.get("latest"):
+            return data["latest"]
+        by_date = data.get("tasks_by_date") or {}
+        if not by_date:
+            return {}
+        return by_date[max(by_date)]
 
     @property
     def native_value(self) -> int:
-        return len(self._today_data.get(ATTR_TASKS, []))
+        return len(self._snapshot.get(ATTR_TASKS, []))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        data = self._today_data
-        task_date = data.get(ATTR_DATE, dt_util.now().date().isoformat())
-        tasks = data.get(ATTR_TASKS, [])
+        data = self._snapshot
+        tasks = data.get(ATTR_TASKS) or []
+        groups = data.get("groups") if isinstance(data.get("groups"), dict) else {}
+        message = data.get("message") if isinstance(data.get("message"), str) else ""
+        if not message:
+            message = "\n\n".join(f"- {task.get('title')}" for task in tasks if task.get("title"))
+        if not message:
+            message = "尚未同步到任务。"
         return {
-            ATTR_DATE: task_date,
+            ATTR_DATE: data.get(ATTR_DATE),
             ATTR_TASKS: tasks,
-            "message": format_markdown({"tasks": tasks}, task_date),
+            "groups": groups,
+            "message": message,
+            "overdue_count": len(groups.get("overdue") or []),
+            "today_count": len(groups.get("today") or []),
+            "week_count": len(groups.get("week") or []),
             ATTR_LAST_SYNC: data.get(ATTR_LAST_SYNC),
         }

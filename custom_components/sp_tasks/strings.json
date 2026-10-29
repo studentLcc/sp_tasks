@@ -3,48 +3,11 @@
     "step": {
       "user": {
         "title": "Super Productivity 任务",
-        "description": "接收桥接服务推送的今天任务。通知地址可以现在填写，也可以稍后在集成选项中修改。",
-        "data": {
-          "wecom_webhook_url": "企业微信机器人 Webhook",
-          "serverchan_sendkey": "Server酱 SendKey",
-          "serverchan_uid": "Server酱³ UID（可选）"
-        }
+        "description": "接收桥接服务推送的已过期、今天和未来 7 天任务。通知仍由你现有的 rest_command 发送。"
       }
-    },
-    "error": {
-      "invalid_url": "Webhook 必须以 https:// 开头",
-      "invalid_sendkey": "无法识别 Server酱³ SendKey，请填写 UID 或使用 sctp<uid>t... 格式"
     },
     "abort": {
       "single_instance_allowed": "已经添加过这个集成"
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "通知设置",
-        "data": {
-          "wecom_webhook_url": "企业微信机器人 Webhook",
-          "serverchan_sendkey": "Server酱 SendKey",
-          "serverchan_uid": "Server酱³ UID（可选）"
-        }
-      }
-    },
-    "error": {
-      "invalid_url": "Webhook 必须以 https:// 开头",
-      "invalid_sendkey": "无法识别 Server酱³ SendKey，请填写 UID 或使用 sctp<uid>t... 格式"
-    }
-  },
-  "services": {
-    "send_daily_summary": {
-      "name": "发送今日摘要",
-      "description": "可选。今天的任务在传感器 sensor.sp_tasks_today 的属性里。已有 rest_command 时不用这个动作。",
-      "fields": {
-        "date": {
-          "name": "日期",
-          "description": "YYYY-MM-DD，留空表示今天。"
-        }
-      }
     }
   }
 }

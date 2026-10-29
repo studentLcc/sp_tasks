@@ -26,16 +26,14 @@ Super Productivity 桌面端
 - `POST /api/sp_tasks/tasks`：桥接服务写入任务。请求必须带 Home Assistant 长期访问令牌。
 - `GET /api/sp_tasks/tasks?date=YYYY-MM-DD`：读取指定日期的任务。
 - “今日任务”传感器：状态是任务数量，属性包含 `date`、`tasks`、`last_sync`。
-- 传感器 `sensor.sp_tasks_today`：状态是今天的任务数量。属性 `tasks` 是任务列表，属性 `message` 是可以直接交给已有 `rest_command` 的正文。
-- `sp_tasks.send_daily_summary`：可选动作。已经有 Server酱 `rest_command` 时不用它。
+- 传感器 sensor.sp_tasks_today：属性 message 按已过期、今天、一周内排好，填入 rest_command 的 desp。
 
 任务保存在 Home Assistant 的存储中，重启后仍然存在。同一天重复同步会覆盖当天记录。
 
 ## 每天 07:00 推送
 
-在 HA 的自动化界面新建一个时间触发，时间为 `07:00:00`，动作选择 `sp_tasks.send_daily_summary`。示例见 [examples/daily_summary.yaml](examples/daily_summary.yaml)。
+每天 07:00 调用你已有的 Server酱 rest_command。desp 使用 sensor.sp_tasks_today 的 message。示例见 examples/daily_summary.yaml。
 
-Server酱³ 的 SendKey 以 `sctp` 开头。标准的 `sctp<uid>t...` 会自动识别 UID；无法识别时，在集成配置里填写 UID。
 
 ## 桥接服务镜像
 
@@ -57,4 +55,4 @@ curl -X POST http://127.0.0.1:8787/sync
 python3 -m unittest discover -s tests -v
 ```
 
-同步成功后，在 HA 开发者工具中查看“今日任务”传感器，再手动运行 `sp_tasks.send_daily_summary`。
+同步成功后，在 HA 开发者工具中查看 sensor.sp_tasks_today，确认 message 里有已过期、今天、一周内三段。

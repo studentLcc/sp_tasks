@@ -6,12 +6,15 @@ import os
 import threading
 import time
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
+
+from bridge.classify import classify_tasks, render_message
 
 LOGGER = logging.getLogger("sp-ha-bridge")
 
@@ -33,6 +36,7 @@ class Settings:
     sync_interval: int = int(os.getenv("SYNC_INTERVAL_SECONDS", "900"))
     include_done: bool = _env_bool("SP_INCLUDE_DONE", False)
     request_timeout: int = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "15"))
+    timezone: str = os.getenv("TZ", "Asia/Shanghai")
 
 
 def _json_request(
@@ -56,26 +60,6 @@ def _json_request(
         return json.loads(raw.decode("utf-8")) if raw else None
 
 
-def normalize_task(task: dict[str, Any], task_date: str) -> dict[str, Any]:
-    """Keep HA storage stable across SP API additions."""
-    return {
-        "id": str(task.get("id", "")),
-        "title": str(task.get("title", "")).strip(),
-        "notes": task.get("notes") or "",
-        "is_done": bool(task.get("isDone", False)),
-        "project_id": task.get("projectId"),
-        "tag_ids": list(task.get("tagIds") or []),
-        "due_day": task.get("dueDay"),
-        "due_with_time": task.get("dueWithTime"),
-        "deadline_day": task.get("deadlineDay"),
-        "deadline_with_time": task.get("deadlineWithTime"),
-        "time_estimate_ms": task.get("timeEstimate"),
-        "time_spent_ms": task.get("timeSpent"),
-        "parent_id": task.get("parentId"),
-        "date": task_date,
-    }
-
-
 class Bridge:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or Settings()
@@ -88,11 +72,12 @@ class Bridge:
             return self._last_sync
 
     def _sp_url(self) -> str:
-        query = urlencode({"tagId": "TODAY", "includeDone": str(self.settings.include_done).lower()})
+        query = urlencode({"includeDone": str(self.settings.include_done).lower(), "source": "active"})
         return f"{self.settings.sp_api_url.rstrip('/')}/tasks?{query}"
 
     def sync(self) -> dict[str, Any]:
-        task_date = date.today().isoformat()
+        tz = ZoneInfo(self.settings.timezone)
+        today = datetime.now(tz).date()
         response = _json_request(
             self._sp_url(), token=self.settings.sp_api_token, timeout=self.settings.request_timeout
         )
@@ -101,12 +86,16 @@ class Bridge:
         raw_tasks = response.get("data", [])
         if not isinstance(raw_tasks, list):
             raise RuntimeError("Super Productivity response data is not a list")
-        tasks = [normalize_task(task, task_date) for task in raw_tasks if isinstance(task, dict)]
+        groups = classify_tasks([task for task in raw_tasks if isinstance(task, dict)], today, tz)
+        tasks = [task for key in ("overdue", "today", "week") for task in groups[key]]
+        message = render_message(groups, today)
         payload = {
             "source": "super_productivity",
-            "date": task_date,
+            "date": today.isoformat(),
             "synced_at": datetime.now(timezone.utc).isoformat(),
             "tasks": tasks,
+            "groups": groups,
+            "message": message,
         }
         endpoint = urljoin(self.settings.ha_url.rstrip("/") + "/", self.settings.ha_endpoint.lstrip("/"))
         result = _json_request(
@@ -118,7 +107,7 @@ class Bridge:
         )
         with self._lock:
             self._last_sync = {
-                "date": task_date,
+                "date": today.isoformat(),
                 "synced_at": payload["synced_at"],
                 "task_count": len(tasks),
                 "ha_response": result,
@@ -181,4 +170,3 @@ def run(settings: Settings | None = None) -> None:
 if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
     run()
-

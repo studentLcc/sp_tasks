@@ -6,7 +6,8 @@ COPY bridge /app/bridge
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     BRIDGE_HOST=127.0.0.1 \
-    BRIDGE_PORT=8787
+    BRIDGE_PORT=8787 \
+    TZ=Asia/Shanghai
 
 RUN useradd --create-home --uid 10001 bridge
 USER bridge

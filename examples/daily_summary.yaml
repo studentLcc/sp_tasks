@@ -1,9 +1,13 @@
 - id: sp_tasks_daily_summary
-  alias: Super Productivity 每日任务摘要
-  description: 每天 07:00 读取 HA 中已保存的今天任务，并推送到企业微信和 Server酱³
-  trigger:
-    - platform: time
-      at: "07:00:00"
-  action:
-    - action: sp_tasks.send_daily_summary
-  mode: single
+alias: Super Productivity 每日任务摘要
+description: 每天 07:00 把已分类任务交给现有 Server酱 rest_command
+trigger:
+  - platform: time
+    at: "07:00:00"
+action:
+  - action: rest_command.your_serverchan_command
+    data:
+      title: "任务"
+      desp: "{{ state_attr('sensor.sp_tasks_today', 'message') }}"
+      tags: "任务"
+mode: single

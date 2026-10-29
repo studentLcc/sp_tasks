@@ -1,42 +1,45 @@
-import json
 import os
 import sys
 import unittest
+from datetime import datetime, timedelta
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from bridge.app import Bridge, Settings, normalize_task  # noqa: E402
+from bridge.app import Bridge, Settings  # noqa: E402
 
 
 class BridgeTests(unittest.TestCase):
-    def test_normalize_task(self):
-        task = normalize_task({"id": "1", "title": "  写周报 ", "isDone": 0, "tagIds": None}, "2026-10-29")
-        self.assertEqual(task["title"], "写周报")
-        self.assertFalse(task["is_done"])
-        self.assertEqual(task["tag_ids"], [])
-
     @patch("bridge.app._json_request")
-    def test_sync_reads_today_and_posts_to_ha(self, request):
+    def test_sync_posts_classified_message(self, request):
+        today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
         request.side_effect = [
-            {"ok": True, "data": [{"id": "1", "title": "写周报", "dueDay": "2026-10-29"}]},
-            {"ok": True, "accepted": 1},
+            {
+                "ok": True,
+                "data": [
+                    {"id": "1", "title": "补报告", "dueDay": (today - timedelta(days=1)).isoformat()},
+                    {"id": "2", "title": "写周报", "dueDay": today.isoformat()},
+                    {"id": "3", "title": "看牙", "dueDay": (today + timedelta(days=2)).isoformat()},
+                ],
+            },
+            {"ok": True},
         ]
-        settings = Settings(
-            sp_api_url="http://sp",
-            sp_api_token="sp-token",
-            ha_url="http://ha:8123",
-            ha_token="ha-token",
-        )
-        with patch("bridge.app.date") as mocked_date:
-            mocked_date.today.return_value.isoformat.return_value = "2026-10-29"
-            result = Bridge(settings).sync()
-        self.assertEqual(result["task_count"], 1)
-        self.assertEqual(request.call_args_list[0].kwargs["token"], "sp-token")
-        self.assertEqual(request.call_args_list[1].kwargs["token"], "ha-token")
+        result = Bridge(
+            Settings(
+                sp_api_url="http://sp",
+                sp_api_token="sp-token",
+                ha_url="http://ha:8123",
+                ha_token="ha-token",
+                timezone="Asia/Shanghai",
+            )
+        ).sync()
+        self.assertEqual(result["task_count"], 3)
         payload = request.call_args_list[1].kwargs["payload"]
-        self.assertEqual(payload["tasks"][0]["title"], "写周报")
+        self.assertIn("已过期（1）", payload["message"])
+        self.assertIn("今天（1）", payload["message"])
+        self.assertIn("一周内（1）", payload["message"])
+        self.assertNotIn("tagId=TODAY", request.call_args_list[0].args[0])
 
 
 if __name__ == "__main__":
     unittest.main()
-
