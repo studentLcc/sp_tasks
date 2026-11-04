@@ -11,13 +11,14 @@ const DEFAULT_CONFIG = {
   haEndpoint: "/api/sp_tasks/tasks",
   timezone: "Asia/Shanghai",
 };
-const CATEGORY_TITLES = { overdue: "已过期", today: "今天", week: "一周内" };
-const CATEGORIES = ["overdue", "today", "week"];
+const CATEGORY_TITLES = { overdue: "已过期", today: "今天", week: "一周内", unscheduled: "未安排" };
+const CATEGORIES = ["overdue", "today", "week", "unscheduled"];
 
 let config = { ...DEFAULT_CONFIG };
 let debounceTimer = null;
 let syncInFlight = false;
 let syncPending = false;
+let syncPendingReason = null;
 let lastSignature = null;
 
 function logError(message, error) {
@@ -180,11 +181,22 @@ function taskContent(value) {
 }
 
 function classifyTasks(rawTasks, today, timezone) {
-  const groups = { overdue: [], today: [], week: [] };
+  const groups = { overdue: [], today: [], week: [], unscheduled: [] };
   for (const task of rawTasks) {
     if (!task || typeof task !== "object" || task.isDone) continue;
     const point = schedulePoint(task, timezone);
-    if (!point.day) continue;
+    if (!point.day) {
+      groups.unscheduled.push({
+        id: String(task.id || ""),
+        title: String(task.title || "").trim() || "（无标题）",
+        notes: taskContent(task.notes),
+        schedule_day: null,
+        schedule_time: "",
+        category: "unscheduled",
+        parent_id: task.parentId || null,
+      });
+      continue;
+    }
     const delta = dateDistance(point.day, today);
     const category = delta < 0 ? "overdue" : delta === 0 ? "today" : delta <= 7 ? "week" : null;
     if (!category) continue;
@@ -232,12 +244,13 @@ function requestSync(reason) {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     syncNow(reason).catch((error) => logError("推送失败", error));
-  }, reason === "startup" ? 0 : 750);
+  }, reason === "startup" || reason === "manual" ? 0 : 750);
 }
 
 async function syncNow(reason) {
   if (syncInFlight) {
     syncPending = true;
+    if (reason === "manual") syncPendingReason = "manual";
     return;
   }
   syncInFlight = true;
@@ -261,7 +274,7 @@ async function syncNow(reason) {
       message: renderMessage(groups),
     };
     const signature = JSON.stringify({ date: payload.date, tasks: payload.tasks, groups: payload.groups, message: payload.message });
-    if (reason !== "startup" && signature === lastSignature) return;
+    if (reason !== "startup" && reason !== "manual" && signature === lastSignature) return;
     const endpoint = new URL(config.haEndpoint, `${config.haUrl.replace(/\/$/, "")}/`).toString();
     await PluginAPI.request(endpoint, {
       method: "POST",
@@ -279,14 +292,16 @@ async function syncNow(reason) {
     const errorMessage = String(error.message || error);
     const privateNetworkBlocked = errorMessage.includes("Requests to private/local networks are not allowed");
     const message = privateNetworkBlocked
-      ? "SP 安全策略禁止上传插件直连局域网地址；allowedHosts 无法解除此限制。请使用带身份验证的 HTTPS 公网入口，或安装带内置 sp-ha-sync 的 Super Productivity。"
+      ? "SP 安全策略禁止第三方插件直连局域网地址；allowedHosts 无法解除此限制。请使用带身份验证的 HTTPS 公网入口。"
       : `推送到 Home Assistant 失败：${errorMessage}`;
     PluginAPI.showSnack({ msg: message, type: "ERROR" });
   } finally {
     syncInFlight = false;
     if (syncPending) {
+      const pendingReason = syncPendingReason || "pending";
       syncPending = false;
-      requestSync("pending");
+      syncPendingReason = null;
+      requestSync(pendingReason);
     }
   }
 }
@@ -305,15 +320,9 @@ function registerHooks() {
 }
 
 PluginAPI.registerHeaderButton({
-  label: "同步 SP 任务",
+  label: "立即同步",
   icon: "cloud_upload",
   onClick: () => requestSync("manual"),
-});
-
-PluginAPI.registerMenuEntry({
-  label: "配置 SP → Home Assistant 同步",
-  icon: "settings",
-  onClick: () => PluginAPI.showIndexHtmlAsView(),
 });
 
 PluginAPI.registerConfigHandler(() => PluginAPI.showIndexHtmlAsView());

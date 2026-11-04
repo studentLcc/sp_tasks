@@ -110,6 +110,7 @@ async def _async_get_tasks(call: ServiceCall) -> dict[str, Any]:
         "overdue": list(groups.get("overdue") or []),
         "today": list(groups.get("today") or []),
         "week": list(groups.get("week") or []),
+        "unscheduled": list(groups.get("unscheduled") or []),
     }
 
 

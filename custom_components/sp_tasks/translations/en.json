@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Super Productivity Tasks",
-        "description": "Receive overdue, today, and next-7-day tasks from the Super Productivity plugin. Notifications stay in your existing rest_command."
+        "description": "Receive overdue, today, next-7-day, and unscheduled tasks from the Super Productivity plugin. Notifications stay in your existing rest_command."
       }
     },
     "abort": {
@@ -13,7 +13,7 @@
   "services": {
     "get_tasks": {
       "name": "Get tasks",
-      "description": "Return overdue, today, and next-7-day tasks for a response variable."
+      "description": "Return overdue, today, next-7-day, and unscheduled tasks for a response variable."
     }
   }
 }

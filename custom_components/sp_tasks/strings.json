@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Super Productivity 任务",
-        "description": "接收 Super Productivity 插件推送的已过期、今天和未来 7 天任务。通知仍由你现有的 rest_command 发送。"
+        "description": "接收 Super Productivity 插件推送的已过期、今天、未来 7 天及未安排日期的任务。通知仍由你现有的 rest_command 发送。"
       }
     },
     "abort": {
@@ -13,7 +13,7 @@
   "services": {
     "get_tasks": {
       "name": "获取任务",
-      "description": "返回已过期、今天和一周内的任务。后续动作通过响应变量使用。"
+      "description": "返回已过期、今天、一周内和未安排日期的任务。后续动作通过响应变量使用。"
     }
   }
 }

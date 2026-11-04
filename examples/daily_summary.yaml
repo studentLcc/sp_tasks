@@ -118,4 +118,14 @@ action:
         无
 
         {% endfor %}
+
+        **📭 未安排（{{ task.unscheduled | count }}）**
+
+        {% for item in task.unscheduled %}
+        - {{ item.title }}
+
+        {% else %}
+        无
+
+        {% endfor %}
 mode: single

@@ -15,13 +15,14 @@ Super Productivity 插件
   → 你的 Server酱 rest_command
 ```
 
-推送范围是未完成、并且有计划日期的任务：
+推送范围是未完成的近期任务和所有未安排任务：
 
 - 已过期：计划日期早于今天
 - 今天：计划日期是今天
 - 一周内：明天起 7 天内
+- 未安排：没有计划日期的任务
 
-没有计划日期的任务，以及 7 天以后的任务，不会推送。
+有计划日期且在 7 天以后的任务不会推送。
 
 ## 1. 在 HAOS 安装集成
 
@@ -38,17 +39,17 @@ Super Productivity 插件
 | --- | --- |
 | `desp` | 给 Server酱 正文使用的文本 |
 | `tasks` | 任务列表 |
-| `groups` | 按已过期、今天、一周内分组 |
+| `groups` | 按已过期、今天、一周内、未安排分组 |
 | `date` | 这次同步使用的日期 |
 | `last_sync` | 最近一次同步时间 |
 
-`desp` 只包含分类和任务标题。有具体钟点时才写时间，有备注时才写内容。正文不再重复通知标题，也不再给每条任务加日期。正文由插件生成。
+`desp` 包含已过期、今天、一周内和未安排分类及任务标题。有具体钟点时才写时间，有备注时才写内容。正文不再重复通知标题，也不再给每条任务加日期。正文由插件生成。
 
 ## 2. 安装 Super Productivity 插件
 
 插件调用 HA 集成的 `/api/sp_tasks/tasks`。它在 SP 启动时推送一次，并在任务数据变化后推送。
 
-SP 的 `PluginAPI.request()` 会拒绝上传插件请求私有或本机网络。HA 只有局域网 IP 时，上传安装的插件无法直连；把地址写进 `allowedHosts` 也不能解除这个限制。上传插件要直连，HA 需要一个带身份验证的 HTTPS 公网入口。HA 只在局域网里时，按 [`docs/super-productivity-fork-workflow.md`](docs/super-productivity-fork-workflow.md) 维护带内置 `sp-ha-sync` 的 SP 版本。
+SP 的 `PluginAPI.request()` 会拒绝第三方插件请求私有或本机网络。HA 需要通过一个带身份验证和访问控制的 HTTPS 公网入口提供服务；仅在局域网 IP 或 `.local` 主机名上可访问的 HA 无法由这个插件直连。
 
 有公网 HTTPS 入口时，先编辑 [`plugins/sp-ha-sync/manifest.json`](plugins/sp-ha-sync/manifest.json) 的 `allowedHosts` 和 `dataSharing[0].hosts`，加入入口的主机名，然后执行：
 
@@ -57,7 +58,7 @@ cd plugins/sp-ha-sync
 ./package.sh
 ```
 
-在 SP 的 `Settings → Plugins → Choose Plugin File` 中选择生成的 `sp-ha-sync.zip`。安装后从插件菜单或插件侧栏打开配置页，填写 HA 地址、接口路径、长期访问令牌和时区。配置页通过插件消息桥将 Token 交给宿主侧 `plugin.js`，再保存到本地 Secret；它不会写入 SP 同步配置。更换公网入口主机名后需要重新打包安装插件。
+在 SP 的 `Settings → Plugins → Choose Plugin File` 中选择生成的 `sp-ha-sync.zip`。安装后在“设置 → 插件”中打开此插件的配置页，填写 HA 地址、接口路径、长期访问令牌和时区。配置页不显示在 SP 侧边栏；任务界面顶部的“立即同步”按钮可独立触发推送。配置页通过插件消息桥将 Token 交给宿主侧 `plugin.js`，再保存到本地 Secret；它不会写入 SP 同步配置。更换公网入口主机名后需要重新打包安装插件。
 
 限制和 `allowedHosts` 示例见 [`plugins/sp-ha-sync/README.md`](plugins/sp-ha-sync/README.md)。
 
@@ -78,7 +79,7 @@ action:
       tags: "任务"
 ```
 
-通知标题放日期。正文不要直接使用预先拼好的 desp，而是像天气通知一样，用 groups 里的 overdue、today、week 自己写模板。分类名称、是否显示备注、空分类时的文案都可以改。完整示例在 [examples/daily_summary.yaml](examples/daily_summary.yaml)。
+通知标题放日期。正文不要直接使用预先拼好的 desp，而是像天气通知一样，用 groups 里的 overdue、today、week、unscheduled 自己写模板。分类名称、是否显示备注、空分类时的文案都可以改。完整示例在 [examples/daily_summary.yaml](examples/daily_summary.yaml)。
 
 ## 4. 不要提交的内容
 

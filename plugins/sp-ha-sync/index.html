@@ -16,7 +16,7 @@
   <body>
     <main class="page">
       <h1>SP → Home Assistant</h1>
-      <p class="help">插件会在任务变化时推送到 HA。上传安装的插件不能请求局域网 IP，即使地址已加入 allowedHosts 也无法直连；请使用带身份验证的 HTTPS 公网入口。HA 只在局域网时，请安装带内置 sp-ha-sync 的 Super Productivity。</p>
+      <p class="help">插件会在任务变化时推送到 HA。第三方插件不能请求局域网或本机地址，请使用带身份验证的 HTTPS 公网入口。</p>
       <form id="config-form" class="stack">
         <label>
           Home Assistant 地址
@@ -36,7 +36,6 @@
         </label>
         <div class="actions">
           <button class="btn-primary" type="submit">保存并测试推送</button>
-          <button id="sync" type="button">立即同步</button>
         </div>
       </form>
       <p id="status" role="status" aria-live="polite"></p>
@@ -131,22 +130,7 @@
         }
       }
 
-      async function sync() {
-        setStatus("正在等待任务同步……", false);
-        try {
-          if (typeof PluginAPI.persistDataSynced === "function") {
-            await PluginAPI.persistDataSynced(JSON.stringify(values()));
-          }
-          const result = await sendMessage({ type: "syncNow" });
-          if (!result || !result.ok) throw new Error(result?.error || "请求同步失败");
-          setStatus("已请求同步。请查看 HAOS 传感器是否更新。", false);
-        } catch (error) {
-          setStatus(`同步请求失败：${error.message || error}`, true);
-        }
-      }
-
       form.addEventListener("submit", save);
-      document.getElementById("sync").addEventListener("click", sync);
       if (typeof PluginAPI.onReady === "function") PluginAPI.onReady(load);
       else load();
     </script>

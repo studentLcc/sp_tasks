@@ -66,5 +66,6 @@ class SpTasksTodaySensor(SensorEntity):
             "overdue_count": len(groups.get("overdue") or []),
             "today_count": len(groups.get("today") or []),
             "week_count": len(groups.get("week") or []),
+            "unscheduled_count": len(groups.get("unscheduled") or []),
             ATTR_LAST_SYNC: data.get(ATTR_LAST_SYNC),
         }
