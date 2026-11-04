@@ -257,7 +257,7 @@ async function syncNow(reason) {
   try {
     const token = await getHaToken();
     if (!token) {
-      PluginAPI.showSnack({ msg: "SP 任务同步尚未配置 HA Token，请打开“配置 SP → Home Assistant 同步”。", type: "WARNING" });
+      PluginAPI.showSnack({ msg: "SP 任务同步尚未配置 HA Token，请到“设置 → 插件”打开本插件配置。", type: "WARNING" });
       return;
     }
     const rawTasks = await PluginAPI.getTasks();
