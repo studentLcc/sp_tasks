@@ -33,6 +33,8 @@ Super Productivity 插件
 
 添加后会出现传感器，名称是“Super Productivity 任务 今日任务”。在“开发者工具 → 状态”里打开它，最上面的实体 ID 才是自动化要使用的 ID。
 
+“未安排”任务需要 HA 集成版本 `0.3.5` 或更新版本。更新集成后重启 Home Assistant，再在 SP 插件里点一次“立即同步”；随后 `sp_tasks.get_tasks` 的响应会包含 `task.unscheduled`。
+
 传感器状态是任务数量。属性如下：
 
 | 属性 | 含义 |
