@@ -23,53 +23,99 @@ action:
     response_variable: task
   - action: rest_command.your_serverchan_command
     data:
-      title: "早安（{{ task.date }}）"
-      tags: "天气|任务"
-      desp: >
-        **实时状况**
+      title: |
+        {% set verse = {
+          '晴': '晴光正好',
+          '少云': '云影轻移',
+          '多云': '云淡风轻',
+          '阴': '天色微阴',
+          '阵雨': '一阵疏雨',
+          '雷阵雨': '雷雨初来',
+          '小雨': '细雨如丝',
+          '中雨': '雨声淅沥',
+          '大雨': '雨势正浓',
+          '暴雨': '急雨敲窗',
+          '雨夹雪': '雨雪纷纷',
+          '小雪': '小雪初霁',
+          '中雪': '雪落无声',
+          '大雪': '大雪纷飞',
+          '雾': '雾锁城隅',
+          '霾': '烟霭朦胧'
+        }.get(wx.now.text_cn, '天气正好') %}
+        {{ wx.city }} · {{ verse }}
+      tags: "天气"
+      desp: |
+        {% set weather_icon = {
+          '晴': '☀️',
+          '少云': '🌤️',
+          '多云': '⛅',
+          '阴': '☁️',
+          '阵雨': '🌦️',
+          '雷阵雨': '⛈️',
+          '小雨': '🌦️',
+          '中雨': '🌧️',
+          '大雨': '🌧️',
+          '暴雨': '⛈️',
+          '雨夹雪': '🌨️',
+          '小雪': '🌨️',
+          '中雪': '❄️',
+          '大雪': '❄️',
+          '雾': '🌫️',
+          '霾': '😷'
+        }.get(wx.now.text_cn, '🌈') %}
+        **{{ weather_icon }} 实时状况**
 
-        {{ wx.now.text_cn }}，当前 {{ wx.now.temp | round(1) }}℃（体感 {{ wx.now.feelsLike | round(1) }}℃）
+        {{ weather_icon }} {{ wx.now.text_cn }}，当前 {{ wx.now.temp | round(1) }}℃（体感 {{ wx.now.feelsLike | round(1) }}℃）
 
-        **今日预报**
+        # 📅 今日预报
 
-        - 白天：{{ wx.daily[0].daytime.text }}，最高温 {{ wx.daily[0].temp_max | round(0) }}℃
-        - 夜间：{{ wx.daily[0].nighttime.text }}，最低温 {{ wx.daily[0].temp_min | round(0) }}℃
-        - 风向：{{ wx.now.windDir }} {{ wx.now.windScale }}级
+        - ☀️ 白天：{{ wx.daily[0].daytime.text }}，最高温 {{ wx.daily[0].temp_max | round(0) }}℃
 
-        **空气质量**
+        - 🌙 夜间：{{ wx.daily[0].nighttime.text }}，最低温 {{ wx.daily[0].temp_min | round(0) }}℃
+
+        - 💨 风向：{{ wx.now.windDir }} {{ wx.now.windScale }}级
+
+        **😷 空气质量**
 
         {{ wx.aqi.category }}（AQI：{{ wx.aqi.aqi }}），首要污染物：{{ wx.aqi.primary | default('无') }}
 
-        **穿衣指南**
+        **👕 穿衣指南**
 
         {{ wx.indices[2].brf }}：{{ wx.indices[2].txt }}
 
-        **降水提醒**
+        **🌧️ 降水提醒**
 
         {{ wx.minutely_summary }}
 
         > 更新时间：{{ wx.update_time }}
 
-        **今日任务**
+        # 📋 今日任务
 
-        已过期（{{ task.overdue | count }}）
+        **⚠️ 已过期（{{ task.overdue | count }}）**
+
         {% for item in task.overdue %}
         - {{ item.title }}
+
         {% else %}
         无
-        {% endfor %}
 
-        今天（{{ task.today | count }}）
+        {% endfor %}
+        **📌 今天（{{ task.today | count }}）**
+
         {% for item in task.today %}
         - {{ item.title }}
+
         {% else %}
         无
-        {% endfor %}
 
-        一周内（{{ task.week | count }}）
+        {% endfor %}
+        **🗓️ 一周内（{{ task.week | count }}）**
+
         {% for item in task.week %}
         - {{ item.title }}
+
         {% else %}
         无
+
         {% endfor %}
 mode: single

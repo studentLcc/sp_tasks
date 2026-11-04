@@ -1,0 +1,22 @@
+{
+  "id": "sp-ha-sync",
+  "name": "SP任务同步到HAOS",
+  "version": "0.1.6",
+  "description": "任务发生变化时，将 Super Productivity 的任务快照推送到 Home Assistant。",
+  "author": "studentLcc",
+  "manifestVersion": 1,
+  "minSupVersion": "19.3.0",
+  "iFrame": true,
+  "sidePanel": true,
+  "permissions": ["getTasks", "http"],
+  "hooks": ["dataChanged", "taskComplete", "taskUpdate", "taskDelete", "dayChange", "persistedDataChanged"],
+  "allowedHosts": ["homeassistant.local", "192.168.31.106", "localhost", "127.0.0.1"],
+  "dataSharing": [
+    {
+      "recipient": "由用户配置的 Home Assistant",
+      "hosts": ["homeassistant.local", "192.168.31.106", "127.0.0.1"],
+      "userServer": true,
+      "data": ["credentials", "taskTitles", "taskNotes", "taskSchedule", "taskStatus", "ids"]
+    }
+  ]
+}

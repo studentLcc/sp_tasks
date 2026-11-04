@@ -21,7 +21,7 @@ SERVICE_GET_TASKS = "get_tasks"
 
 
 class TasksView(HomeAssistantView):
-    """Authenticated endpoint used by the bridge running beside Super Productivity."""
+    """Authenticated endpoint used by the Super Productivity plugin."""
 
     url = "/api/sp_tasks/tasks"
     name = "api:sp_tasks:tasks"

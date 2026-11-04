@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Super Productivity Tasks",
-        "description": "Receive overdue, today, and next-7-day tasks from the bridge. Notifications stay in your existing rest_command."
+        "description": "Receive overdue, today, and next-7-day tasks from the Super Productivity plugin. Notifications stay in your existing rest_command."
       }
     },
     "abort": {

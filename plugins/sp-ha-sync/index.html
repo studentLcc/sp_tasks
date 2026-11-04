@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SP → Home Assistant</title>
+    <style>
+      .page { max-width: 720px; margin: 0 auto; padding: 24px; }
+      .stack { display: grid; gap: 16px; }
+      label { display: grid; gap: 6px; font-weight: 600; }
+      input { width: 100%; box-sizing: border-box; }
+      .help { color: var(--text-color-secondary); font-size: 0.9em; }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+      #status { min-height: 1.5em; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <h1>SP → Home Assistant</h1>
+      <p class="help">插件会在任务变化时推送到 HA。上传安装的插件不能请求局域网 IP，即使地址已加入 allowedHosts 也无法直连；请使用带身份验证的 HTTPS 公网入口。HA 只在局域网时，请安装带内置 sp-ha-sync 的 Super Productivity。</p>
+      <form id="config-form" class="stack">
+        <label>
+          Home Assistant 地址
+          <input id="ha-url" type="url" required placeholder="http://192.168.1.20:8123" />
+        </label>
+        <label>
+          接口路径
+          <input id="ha-endpoint" type="text" required placeholder="/api/sp_tasks/tasks" />
+        </label>
+        <label>
+          Home Assistant 长期访问令牌
+          <input id="ha-token" type="password" autocomplete="off" placeholder="输入后保存；留空表示不修改" />
+        </label>
+        <label>
+          时区
+          <input id="timezone" type="text" required placeholder="Asia/Shanghai" />
+        </label>
+        <div class="actions">
+          <button class="btn-primary" type="submit">保存并测试推送</button>
+          <button id="sync" type="button">立即同步</button>
+        </div>
+      </form>
+      <p id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script>
+      const DEFAULT_CONFIG = {
+        haUrl: "http://homeassistant.local:8123",
+        haEndpoint: "/api/sp_tasks/tasks",
+        timezone: "Asia/Shanghai",
+      };
+      const form = document.getElementById("config-form");
+      const status = document.getElementById("status");
+      const pendingMessages = new Map();
+
+      function sendMessage(message) {
+        return new Promise((resolve, reject) => {
+          const messageId = Math.random().toString(36).slice(2);
+          const timeout = setTimeout(() => {
+            pendingMessages.delete(messageId);
+            reject(new Error("等待 Super Productivity 响应超时"));
+          }, 10000);
+          pendingMessages.set(messageId, { resolve, reject, timeout });
+          window.parent.postMessage({ type: "PLUGIN_MESSAGE", message, messageId }, "*");
+        });
+      }
+
+      window.addEventListener("message", (event) => {
+        if (event.source !== window.parent) return;
+        const message = event.data;
+        if (!message || !message.messageId || !["PLUGIN_MESSAGE_RESPONSE", "PLUGIN_MESSAGE_ERROR"].includes(message.type)) return;
+        const pending = pendingMessages.get(message.messageId);
+        if (!pending) return;
+        clearTimeout(pending.timeout);
+        pendingMessages.delete(message.messageId);
+        if (message.type === "PLUGIN_MESSAGE_ERROR") {
+          pending.reject(new Error(message.error || "Super Productivity 处理消息失败"));
+        } else if (message.type === "PLUGIN_MESSAGE_RESPONSE") {
+          pending.resolve(Object.prototype.hasOwnProperty.call(message, "result") ? message.result : message.response);
+        }
+      });
+
+      function setStatus(message, isError) {
+        status.textContent = message;
+        status.style.color = isError ? "var(--error-color)" : "var(--text-color-secondary)";
+      }
+
+      function values() {
+        return {
+          haUrl: document.getElementById("ha-url").value.trim().replace(/\/$/, ""),
+          haEndpoint: document.getElementById("ha-endpoint").value.trim() || "/api/sp_tasks/tasks",
+          timezone: document.getElementById("timezone").value.trim() || DEFAULT_CONFIG.timezone,
+        };
+      }
+
+      async function load() {
+        try {
+          const raw = await PluginAPI.loadSyncedData();
+          const config = raw ? { ...DEFAULT_CONFIG, ...JSON.parse(raw) } : DEFAULT_CONFIG;
+          document.getElementById("ha-url").value = config.haUrl;
+          document.getElementById("ha-endpoint").value = config.haEndpoint;
+          document.getElementById("timezone").value = config.timezone;
+          const tokenStatus = await sendMessage({ type: "getHaTokenStatus" });
+          if (tokenStatus && tokenStatus.ok && tokenStatus.hasToken) {
+            document.getElementById("ha-token").placeholder = "已保存 Token；留空表示不修改";
+          }
+        } catch (error) {
+          setStatus(`读取配置失败：${error.message || error}`, true);
+        }
+      }
+
+      async function save(event) {
+        event.preventDefault();
+        const config = values();
+        try {
+          const parsed = new URL(config.haUrl);
+          if (!/^https?:$/.test(parsed.protocol)) throw new Error("地址必须使用 http 或 https");
+          if (!config.haEndpoint.startsWith("/")) throw new Error("接口路径必须以 / 开头");
+          await PluginAPI.persistDataSynced(JSON.stringify(config));
+          const token = document.getElementById("ha-token").value.trim();
+          if (token) {
+            const result = await sendMessage({ type: "setHaToken", token });
+            if (!result || !result.ok) throw new Error(result?.error || "宿主未能保存 Token");
+            document.getElementById("ha-token").value = "";
+          }
+          const syncResult = await sendMessage({ type: "syncNow" });
+          if (!syncResult || !syncResult.ok) throw new Error(syncResult?.error || "配置已保存，但同步请求失败");
+          setStatus("配置已保存。Token 由 SP 插件宿主保存在本机 Secret 中，配置会立即用于后续推送。", false);
+          PluginAPI.showSnack({ msg: "HAOS 配置已保存", type: "SUCCESS" });
+        } catch (error) {
+          setStatus(`保存失败：${error.message || error}`, true);
+          PluginAPI.showSnack({ msg: `HAOS 配置失败：${error.message || error}`, type: "ERROR" });
+        }
+      }
+
+      async function sync() {
+        setStatus("正在等待任务同步……", false);
+        try {
+          if (typeof PluginAPI.persistDataSynced === "function") {
+            await PluginAPI.persistDataSynced(JSON.stringify(values()));
+          }
+          const result = await sendMessage({ type: "syncNow" });
+          if (!result || !result.ok) throw new Error(result?.error || "请求同步失败");
+          setStatus("已请求同步。请查看 HAOS 传感器是否更新。", false);
+        } catch (error) {
+          setStatus(`同步请求失败：${error.message || error}`, true);
+        }
+      }
+
+      form.addEventListener("submit", save);
+      document.getElementById("sync").addEventListener("click", sync);
+      if (typeof PluginAPI.onReady === "function") PluginAPI.onReady(load);
+      else load();
+    </script>
+  </body>
+</html>

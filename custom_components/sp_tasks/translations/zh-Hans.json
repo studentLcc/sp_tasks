@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Super Productivity 任务",
-        "description": "接收桥接服务推送的已过期、今天和未来 7 天任务。通知仍由你现有的 rest_command 发送。"
+        "description": "接收 Super Productivity 插件推送的已过期、今天和未来 7 天任务。通知仍由你现有的 rest_command 发送。"
       }
     },
     "abort": {

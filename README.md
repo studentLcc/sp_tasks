@@ -1,15 +1,15 @@
 # Super Productivity 任务
 
-这个仓库包含两个部分：
+这个仓库包含两部分：
 
 1. Home Assistant 集成 `custom_components/sp_tasks`：装在 HAOS 里，接收并保存任务。用 HACS 安装。
-2. 桥接服务 `bridge`：跑在 Super Productivity 那台电脑上，读取本机任务并推送到 HAOS。用 Podman 运行。
+2. Super Productivity 插件 `plugins/sp-ha-sync`：在 SP 内监听任务变化，并把任务推送到 HAOS。
 
-桥接服务不会直接发企业微信或 Server酱。HA 收到任务后，用你已经配置好的 `rest_command` 发送。
+插件不会直接发企业微信或 Server酱。HA 收到任务后，用你已经配置好的 `rest_command` 发送。
 
 ```text
-Super Productivity 桌面端
-  → 本机 Podman 桥接（启动时立刻推送，之后每 15 分钟）
+Super Productivity 插件
+  → 启动时推送一次，之后在任务变化时推送
   → HA 集成 /api/sp_tasks/tasks
   → 传感器属性 desp
   → 你的 Server酱 rest_command
@@ -42,55 +42,24 @@ Super Productivity 桌面端
 | `date` | 这次同步使用的日期 |
 | `last_sync` | 最近一次同步时间 |
 
-`desp` 只包含分类和任务标题。有具体钟点时才写时间，有备注时才写内容。正文不再重复通知标题，也不再给每条任务加日期。
+`desp` 只包含分类和任务标题。有具体钟点时才写时间，有备注时才写内容。正文不再重复通知标题，也不再给每条任务加日期。正文由插件生成。
 
-## 2. 在 Super Productivity 电脑上运行桥接
+## 2. 安装 Super Productivity 插件
 
-Super Productivity 必须是桌面版，并且和 Podman 在同一台 Linux 电脑上。
+插件调用 HA 集成的 `/api/sp_tasks/tasks`。它在 SP 启动时推送一次，并在任务数据变化后推送。
 
-1. 打开 `Settings → Misc → Enable local REST API`，复制 Access Token。
-2. 在 HA 的用户资料页最底部创建长期访问令牌。
-3. 复制环境变量示例：
+SP 的 `PluginAPI.request()` 会拒绝上传插件请求私有或本机网络。HA 只有局域网 IP 时，上传安装的插件无法直连；把地址写进 `allowedHosts` 也不能解除这个限制。上传插件要直连，HA 需要一个带身份验证的 HTTPS 公网入口。HA 只在局域网里时，按 [`docs/super-productivity-fork-workflow.md`](docs/super-productivity-fork-workflow.md) 维护带内置 `sp-ha-sync` 的 SP 版本。
 
-```bash
-cp .env.example .env
-```
-
-4. 编辑 `.env`，至少修改这几项：
+有公网 HTTPS 入口时，先编辑 [`plugins/sp-ha-sync/manifest.json`](plugins/sp-ha-sync/manifest.json) 的 `allowedHosts` 和 `dataSharing[0].hosts`，加入入口的主机名，然后执行：
 
 ```bash
-SP_API_TOKEN=Super Productivity 的 Access Token
-HA_URL=http://HAOS的IP:8123
-HA_TOKEN=Home Assistant 长期访问令牌
-TZ=Asia/Shanghai
-SYNC_INTERVAL_SECONDS=900
+cd plugins/sp-ha-sync
+./package.sh
 ```
 
-`900` 表示每 15 分钟向 HAOS 推送一次。容器启动时还会立刻推送一次。
+在 SP 的 `Settings → Plugins → Choose Plugin File` 中选择生成的 `sp-ha-sync.zip`。安装后从插件菜单或插件侧栏打开配置页，填写 HA 地址、接口路径、长期访问令牌和时区。配置页通过插件消息桥将 Token 交给宿主侧 `plugin.js`，再保存到本地 Secret；它不会写入 SP 同步配置。更换公网入口主机名后需要重新打包安装插件。
 
-5. 构建并启动。必须使用主机网络，容器才能访问只监听在 `127.0.0.1:3876` 的 Super Productivity：
-
-```bash
-podman build -t sp-ha-bridge:local .
-podman run -d --replace --name sp-ha-bridge --network host --env-file .env --restart unless-stopped localhost/sp-ha-bridge:local
-```
-
-6. 手动推送一次：
-
-```bash
-curl -X POST http://127.0.0.1:8787/sync
-```
-
-返回 `"ok": true` 后，回到 HA 查看传感器属性。`desp` 里应能看到“已过期、今天、一周内”。
-
-常用命令：
-
-```bash
-podman logs -f sp-ha-bridge
-podman restart sp-ha-bridge
-```
-
-更新桥接代码后，在仓库目录重新执行上面的 `podman build` 和 `podman run --replace`。只更新 HACS 不会改变正文格式，正文是桥接服务生成的。
+限制和 `allowedHosts` 示例见 [`plugins/sp-ha-sync/README.md`](plugins/sp-ha-sync/README.md)。
 
 ## 3. 每天早上用已有的 Server酱 发送
 
@@ -113,4 +82,4 @@ action:
 
 ## 4. 不要提交的内容
 
-`.env` 里有 Super Productivity 令牌和 HA 令牌。它已经在 `.gitignore` 里，不要提交，也不要写进说明。
+Home Assistant 长期访问令牌保存在 Super Productivity 本机 Secret 中。不要把它写进 `manifest.json`、插件配置或说明文档。
